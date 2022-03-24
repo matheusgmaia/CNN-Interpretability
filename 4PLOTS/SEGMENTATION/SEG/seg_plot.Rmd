@@ -1,0 +1,67 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+theme_set(theme_bw())
+library(boot)
+library(broom)
+library(dplyr)
+```
+
+
+```{r}
+dados_custom = read_csv(here::here("/home/maia/Documents/Universidade/Universidade/UNIVERSIDADE/EXPERIMENTO/3EVALUATE_NEW_VGG_CUSTOM/3SEGMENTATION/CUSTOM_CNN/X-RAY/custom_segmentation.csv"))
+names(dados_custom) <- c('Método','Hits')
+
+dados_vgg = read_csv(here::here("/home/maia/Documents/Universidade/Universidade/UNIVERSIDADE/EXPERIMENTO/3EVALUATE_NEW_VGG_CUSTOM/3SEGMENTATION/VGG_NET/X-RAY/vgg_segmentation.csv"))
+names(dados_vgg) <- c('Método','Hits')
+
+```
+
+```{r}
+unique(dados_custom$method)
+dados_custom$method <- factor(dados_custom$Método, levels=c("RISE","GradCam","XRAI","LIME","BlurIG","SmoothGrad","GuidedIG","IntegratedGradients","Input-Grad", "Gradient"))
+dados_vgg$method <- factor(dados_custom$Método, levels=c("RISE","GradCam","XRAI","LIME","BlurIG","SmoothGrad","GuidedIG","IntegratedGradients","Input-Grad", "Gradient"))
+
+
+custom_color=c("RISE"="purple","GradCam"="purple","XRAI"="orange","LIME"="orange","BlurIG"="steelblue","SmoothGrad"="steelblue","GuidedIG"="steelblue","IntegratedGradients"="steelblue","Input-Grad"="steelblue", "Gradient"="steelblue")
+
+```
+
+```{r}
+dados_custom %>% ggplot(aes(x=method, y=Hits, fill=method ))+
+  geom_bar(stat='identity')+
+  labs(
+         x = "Técnica de Interpretabilidade", 
+         y = "Proporção de pixels com máxima atribuição \n na região de interesse.", 
+         title = "Métrica Jogo de Apontar \n Adaptada - CUSTOM_CNN"
+         )+
+  scale_fill_manual(values=custom_color)+
+  coord_flip()+
+  theme(legend.position="none")
+```
+
+```{r}
+ggsave(paste("CUSTOM_CNN","-APONTAR.pdf", sep=""), width= 6, height= 4, dpi = 300)
+```
+
+```{r}
+dados_vgg %>% ggplot(aes(x=method, y=Hits, fill=method ))+
+  geom_bar(stat='identity')+
+  labs(
+         x = "Técnica de Interpretabilidade", 
+         y = "Proporção de pixels com máxima atribuição \n na região de interesse.", 
+         title = "Métrica Jogo de Apontar \n Adaptada - VGG_CNN"
+         )+
+  scale_fill_manual(values=custom_color)+
+  coord_flip()+
+  theme(legend.position="none")
+```
+
+```{r}
+ggsave(paste("VGG_NET","-APONTAR.pdf", sep=""), width= 6, height= 4, dpi = 300)
+```
+

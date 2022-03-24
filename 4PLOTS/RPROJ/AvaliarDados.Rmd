@@ -1,0 +1,289 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r}
+library(tidyverse)
+theme_set(theme_bw())
+library(boot)
+library(broom)
+library(dplyr)
+```
+
+
+```{r}
+#exp = "RANDOM-CUSTOM-OCT"
+#titulo = "Rede Customizada - Base OCT"
+#exp = "RANDOM-VGG-OCT"
+#titulo = "Rede CGG - Base OCT"
+#exp = "RANDOM-CUSTOM-XRAY"
+#titulo = "Rede Customizada - Base RaioX"
+exp = "RANDOM-VGG-XRAY"
+titulo = "Rede VGG - Base RaioX"
+dados = read_csv(here::here(paste("../",exp,".csv",sep="")))
+dados[is.na(dados)] = 0
+```
+```{r}
+unique(dados$method)
+
+```
+
+```{r}
+unique(dados$method)
+dados$method <- factor(dados$method, levels=c("RISE","GradCam","XRAI","LIME","BlurIG","SmoothGrad","GuidedIG","IntegratedGradients","Input-Grad", "Gradient", "Original"))
+
+custom_color=c("RISE"="purple","GradCam"="purple","XRAI"="orange","LIME"="orange","BlurIG"="steelblue","SmoothGrad"="steelblue","GuidedIG"="steelblue","IntegratedGradients"="steelblue","Input-Grad"="steelblue", "Gradient"="steelblue", "Original"="red")
+
+```
+```{r}
+dados
+```
+
+
+```{r}
+dados %>% ggplot( aes(x=method, y = puro_spearman, color=method)) + 
+                      geom_jitter(width = 0.2, height =.005, alpha = 0.2)+
+    stat_summary(fun=mean, color = "black", alpha = 0.5)+
+    labs(
+         x = "Método de Interpretação", 
+         y = "Correlação de Spearman", 
+         title = paste("Distribuição das correlações entre explições\n", titulo)
+    )+
+  scale_color_manual(values=custom_color)+
+  coord_flip()+
+  theme(legend.position="none")
+```
+
+```{r}
+ggsave(paste(exp,"-DISTRIB.pdf", sep=""), dpi = 300)
+```
+
+
+```{r}
+thetaRISE <- function(d, i) {
+    methodSum = d %>%
+        slice(i) %>% 
+        group_by(method) %>% 
+        summarise(media = mean(puro_spearman))
+    saliencyMedia = methodSum %>% filter(method == "RISE") %>% pull(media)
+    saliencyMedia
+}
+bootRISE = boot(data = dados,
+           statistic = thetaRISE,
+           R = 2000) %>%
+    tidy(conf.level = .95,
+         conf.int = TRUE)
+bootRISE$nome = "RISE"
+```
+
+```{r}
+thetaInputGrad <- function(d, i) {
+    methodSum = d %>%
+        slice(i) %>% 
+        group_by(method) %>% 
+        summarise(media = mean(puro_spearman))
+    saliencyMedia = methodSum %>% filter(method == "Input-Grad") %>% pull(media)
+    saliencyMedia
+}
+bootInputGrad = boot(data = dados,
+           statistic = thetaInputGrad,
+           R = 2000) %>%
+    tidy(conf.level = .95,
+         conf.int = TRUE)
+bootInputGrad$nome = "Input-Grad"
+
+```
+
+```{r}
+thetaGradCam <- function(d, i) {
+    methodSum = d %>%
+        slice(i) %>% 
+        group_by(method) %>% 
+        summarise(media = mean(puro_spearman))
+    saliencyMedia = methodSum %>% filter(method == "GradCam") %>% pull(media)
+    saliencyMedia
+}
+bootGradCam = boot(data = dados,
+           statistic = thetaGradCam,
+           R = 2000) %>%
+    tidy(conf.level = .95,
+         conf.int = TRUE)
+bootGradCam$nome = "GradCam"
+
+```
+
+```{r}
+thetaXRAI <- function(d, i) {
+    methodSum = d %>%
+        slice(i) %>% 
+        group_by(method) %>% 
+        summarise(media = mean(puro_spearman))
+    saliencyMedia = methodSum %>% filter(method == "XRAI") %>% pull(media)
+    saliencyMedia
+}
+bootXRAI = boot(data = dados,
+           statistic = thetaXRAI,
+           R = 2000) %>%
+    tidy(conf.level = .95,
+         conf.int = TRUE)
+bootXRAI$nome = "XRAI"
+
+```
+
+```{r}
+thetaIntegratedGradients <- function(d, i) {
+    methodSum = d %>%
+        slice(i) %>% 
+        group_by(method) %>% 
+        summarise(media = mean(puro_spearman))
+    saliencyMedia = methodSum %>% filter(method == "IntegratedGradients") %>% pull(media)
+    saliencyMedia
+}
+bootIntegratedGradients = boot(data = dados,
+           statistic = thetaIntegratedGradients,
+           R = 2000) %>%
+    tidy(conf.level = .95,
+         conf.int = TRUE)
+bootIntegratedGradients$nome = "IntegratedGradients"
+
+```
+
+```{r}
+thetaGuidedIG <- function(d, i) {
+    methodSum = d %>%
+        slice(i) %>% 
+        group_by(method) %>% 
+        summarise(media = mean(puro_spearman))
+    saliencyMedia = methodSum %>% filter(method == "GuidedIG") %>% pull(media)
+    saliencyMedia
+}
+bootGuidedIG = boot(data = dados,
+           statistic = thetaGuidedIG,
+           R = 2000) %>%
+    tidy(conf.level = .95,
+         conf.int = TRUE)
+bootGuidedIG$nome = "GuidedIG"
+
+```
+
+```{r}
+thetaLIME <- function(d, i) {
+    methodSum = d %>%
+        slice(i) %>% 
+        group_by(method) %>% 
+        summarise(media = mean(puro_spearman))
+    saliencyMedia = methodSum %>% filter(method == "LIME") %>% pull(media)
+    saliencyMedia
+}
+bootLIME = boot(data = dados,
+           statistic = thetaLIME,
+           R = 2000) %>%
+    tidy(conf.level = .95,
+         conf.int = TRUE)
+bootLIME$nome = "LIME"
+
+```
+
+```{r}
+
+thetaGradient <- function(d, i) {
+    methodSum = d %>%
+        slice(i) %>% 
+        group_by(method) %>% 
+        summarise(media = mean(puro_spearman))
+    saliencyMedia = methodSum %>% filter(method == "Gradient") %>% pull(media)
+    saliencyMedia
+}
+bootGradient  = boot(data = dados,
+           statistic = thetaGradient,
+           R = 4000) %>%
+    tidy(conf.level = .95,
+         conf.int = TRUE)
+bootGradient$nome = "Gradient"
+```
+
+```{r}
+
+thetSmoothGrad <- function(d, i) {
+    methodSum = d %>%
+        slice(i) %>% 
+        group_by(method) %>% 
+        summarise(media = mean(puro_spearman))
+    saliencyMedia = methodSum %>% filter(method == "SmoothGrad") %>% pull(media)
+    saliencyMedia
+}
+bootSmoothGrad  = boot(data = dados,
+           statistic = thetSmoothGrad,
+           R = 4000) %>%
+    tidy(conf.level = .95,
+         conf.method = "bca",
+         conf.int = TRUE)
+bootSmoothGrad$nome = "SmoothGrad"
+```
+
+```{r}
+
+thetaBlurIG <- function(d, i) {
+    methodSum = d %>%
+        slice(i) %>% 
+        group_by(method) %>% 
+        summarise(media = mean(puro_spearman))
+    gradMedia = methodSum %>% filter(method == "BlurIG") %>% pull(media)
+    gradMedia
+}
+bootBlurIG  = boot(data = dados,
+           statistic = thetaBlurIG,
+           R = 4000) %>%
+    tidy(conf.level = .95,
+         conf.method = "bca",
+         conf.int = TRUE)
+bootBlurIG$nome = "BlurIG"
+```
+
+```{r}
+medias <- rbind(bootRISE, bootInputGrad, bootGradCam, bootGradient ,bootSmoothGrad, bootBlurIG, bootXRAI, bootIntegratedGradients, bootGuidedIG, bootLIME)
+medias
+```
+
+```{r}
+medias$nome <- factor(medias$nome, levels=c("RISE","GradCam","XRAI","LIME","BlurIG","SmoothGrad","GuidedIG","IntegratedGradients","Input-Grad", "Gradient"))
+custom_color_boot=c("RISE"="purple","GradCam"="purple","XRAI"="orange","LIME"="orange","BlurIG"="steelblue","SmoothGrad"="steelblue","GuidedIG"="steelblue","IntegratedGradients"="steelblue","Input-Grad"="steelblue", "Gradient"="steelblue")
+
+medias$statistic = abs(medias$statistic) 
+medias$conf.low = abs(medias$conf.low)
+medias$conf.high = abs(medias$conf.high)
+
+medias
+```
+
+
+```{r}
+medias %>% 
+  ggplot(aes(
+            ymin = conf.low,
+            y = statistic,
+            ymax = conf.high,
+            x = nome,
+            color=nome
+        )) +
+        geom_linerange(color = "black") +
+        geom_point(size = 2) +
+        scale_y_continuous(limits = c(-0.05, 1)) +
+        labs(x = "Método de Interpretação", 
+             y = "Correlacão de Spearman Absoluta - IC 95% ",
+             title = paste("Intervalo de confiança para \n correlação de Spearman entre explições\n", titulo))+
+    scale_color_manual(values=custom_color_boot)+
+    coord_flip()+
+    theme(legend.position="none")
+
+
+```
+
+```{r}
+ggsave(paste(exp,"-BOOT.pdf", sep=""), width= 6, height= 4, dpi = 300)
+```
+
+
+

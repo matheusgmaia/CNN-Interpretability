@@ -1,0 +1,130 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r}
+library(tidyverse)
+theme_set(theme_bw())
+library(boot)
+library(broom)
+library(dplyr)
+```
+
+
+```{r}
+dados = read_csv(here::here("../result.csv"))
+dados[is.na(dados)] = 0
+```
+
+```{r}
+dados %>% ggplot( aes(x=method, y = puro_spearman, color=method)) + 
+                      geom_jitter(width = 0.2, height =.005, alpha = 0.2)+
+    geom_violin(alpha = 0.2)+
+    stat_summary(fun=mean, color = "black", alpha = 0.5)+
+    labs(
+         x = "Método", 
+         y = "Corr",
+         title = "Corr por Método"
+    )+
+  coord_flip()
+```
+
+
+```{r}
+thetSaliency <- function(d, i) {
+    methodSum = d %>%
+        slice(i) %>% 
+        group_by(method) %>% 
+        summarise(media = mean(corr))
+    saliencyMedia = methodSum %>% filter(method == "GradientSaliency") %>% pull(media)
+    saliencyMedia
+}
+
+thetaGrad <- function(d, i) {
+    methodSum = d %>%
+        slice(i) %>% 
+        group_by(method) %>% 
+        summarise(media = mean(corr))
+    gradMedia = methodSum %>% filter(method == "SmoothGradCAM") %>% pull(media)
+    gradMedia
+}
+
+bootSaliency = boot(data = dados,
+           statistic = thetSaliency,
+           R = 4000) %>%
+    tidy(conf.level = .95,
+         conf.method = "bca",
+         
+         conf.int = TRUE)
+bootSaliency$nome = "GradientSaliency"
+
+bootGrad = boot(data = dados,
+           statistic = thetaGrad,
+           R = 4000) %>%
+    tidy(conf.level = .95,
+         conf.method = "bca",
+         conf.int = TRUE)
+bootGrad$nome = "SmoothGradCAM"
+```
+
+
+```{r}
+medias <- rbind(bootSaliency, bootGrad)
+medias %>% 
+  ggplot(aes(
+            ymin = conf.low,
+            y = statistic,
+            ymax = conf.high,
+            x = nome,
+            color = nome
+        )) +
+        geom_linerange(color = "black") +
+        geom_point(size = 1) +
+        scale_y_continuous(limits = c(-1, 1)) +
+        labs(x = "", y = "IC 95% Média de Correlacão")+
+    coord_flip()
+
+```
+
+
+```{r}
+thetaSaliencyGrad <- function(d, i) {
+    methodSum = d %>%
+        slice(i) %>% 
+        group_by(method) %>% 
+        summarise(media = mean(corr))
+    saliencyMedia = methodSum %>% filter(method == "GradientSaliency") %>% pull(media)
+    gradMedia = methodSum %>% filter(method == "SmoothGradCAM") %>% pull(media)
+    saliencyMedia - gradMedia
+}
+
+
+bootSaliencyGrad = boot(data = dados,
+           statistic = thetaSaliencyGrad,
+           R = 2000) %>%
+    tidy(conf.level = .95,
+         conf.method = "bca",
+         conf.int = TRUE)
+bootSaliencyGrad$nome = "GradientSaliency - SmoothGradCAM"
+```
+
+```{r}
+bootSaliencyGrad %>% 
+  ggplot(aes(
+            ymin = conf.low,
+            y = statistic,
+            ymax = conf.high,
+            x = nome
+        )) +
+        geom_linerange(color = "black") +
+        geom_point(size = 1, color = "blue") +
+        scale_y_continuous(limits = c(-1, 1)) +
+        labs(x = "", y = "IC 95% Média de Correlacão")+
+    coord_flip()
+```
+
+
+
+

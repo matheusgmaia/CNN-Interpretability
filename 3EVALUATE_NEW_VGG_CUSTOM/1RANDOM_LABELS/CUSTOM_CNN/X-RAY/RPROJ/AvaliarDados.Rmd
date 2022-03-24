@@ -1,0 +1,265 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r}
+library(tidyverse)
+theme_set(theme_bw())
+library(boot)
+library(broom)
+library(dplyr)
+```
+
+
+```{r}
+dados = read_csv(here::here("../result.csv"))
+dados[is.na(dados)] = 0
+```
+
+```{r}
+dados %>% ggplot( aes(x=method, y = puro_spearman, color=method)) + 
+                      geom_jitter(width = 0.2, height =.005, alpha = 0.2)+
+    geom_violin(alpha = 0.2)+
+    stat_summary(fun=mean, color = "black", alpha = 0.5)+
+    labs(
+         x = "Método", 
+         y = "Corr",
+         title = "Corr por Método"
+    )+
+  coord_flip()
+```
+```{r}
+ggsave("distCorr.pdf", dpi = 300)
+```
+
+
+```{r}
+unique(dados$method)
+```
+
+
+
+```{r}
+thetaXRAI <- function(d, i) {
+    methodSum = d %>%
+        slice(i) %>% 
+        group_by(method) %>% 
+        summarise(media = mean(puro_spearman))
+    saliencyMedia = methodSum %>% filter(method == "XRAI") %>% pull(media)
+    saliencyMedia
+}
+bootXRAI = boot(data = dados,
+           statistic = thetaXRAI,
+           R = 2000) %>%
+    tidy(conf.level = .95,
+         conf.int = TRUE)
+bootXRAI$nome = "XRAI"
+
+```
+
+```{r}
+
+thetaSmoothIntegratedGradientSaliency <- function(d, i) {
+    methodSum = d %>%
+        slice(i) %>% 
+        group_by(method) %>% 
+        summarise(media = mean(puro_spearman))
+    saliencyMedia = methodSum %>% filter(method == "SmoothIntegratedGradientSaliency") %>% pull(media)
+    saliencyMedia
+}
+bootSmoothIntegratedGradientSaliency  = boot(data = dados,
+           statistic = thetaSmoothIntegratedGradientSaliency,
+           R = 4000) %>%
+    tidy(conf.level = .95,
+         conf.int = TRUE)
+bootSmoothIntegratedGradientSaliency$nome = "SmoothIntegratedGradientSaliency"
+```
+
+```{r}
+
+thetGradientSaliency <- function(d, i) {
+    methodSum = d %>%
+        slice(i) %>% 
+        group_by(method) %>% 
+        summarise(media = mean(puro_spearman))
+    saliencyMedia = methodSum %>% filter(method == "GradientSaliency") %>% pull(media)
+    saliencyMedia
+}
+bootGradientSaliency  = boot(data = dados,
+           statistic = thetGradientSaliency,
+           R = 4000) %>%
+    tidy(conf.level = .95,
+         conf.method = "bca",
+         conf.int = TRUE)
+bootGradientSaliency$nome = "GradientSaliency"
+```
+
+```{r}
+
+thetaSmoothGradCAM <- function(d, i) {
+    methodSum = d %>%
+        slice(i) %>% 
+        group_by(method) %>% 
+        summarise(media = mean(puro_spearman))
+    gradMedia = methodSum %>% filter(method == "SmoothGradCAM") %>% pull(media)
+    gradMedia
+}
+bootSmoothGradCAM  = boot(data = dados,
+           statistic = thetaSmoothGradCAM,
+           R = 4000) %>%
+    tidy(conf.level = .95,
+         conf.method = "bca",
+         conf.int = TRUE)
+bootSmoothGradCAM$nome = "SmoothGradCAM"
+```
+
+```{r}
+
+thetaSmoothGradientSaliency <- function(d, i) {
+    methodSum = d %>%
+        slice(i) %>% 
+        group_by(method) %>% 
+        summarise(media = mean(puro_spearman))
+    gradMedia = methodSum %>% filter(method == "SmoothGradientSaliency") %>% pull(media)
+    gradMedia
+}
+bootSmoothGradientSaliency  = boot(data = dados,
+           statistic = thetaSmoothGradientSaliency,
+           R = 4000) %>%
+    tidy(conf.level = .95,
+         conf.method = "bca",
+         conf.int = TRUE)
+bootSmoothGradientSaliency$nome = "SmoothGradientSaliency"
+```
+
+```{r}
+
+thetaIntegratedGradientSaliency <- function(d, i) {
+    methodSum = d %>%
+        slice(i) %>% 
+        group_by(method) %>% 
+        summarise(media = mean(puro_spearman))
+    gradMedia = methodSum %>% filter(method == "IntegratedGradientSaliency") %>% pull(media)
+    gradMedia
+}
+bootIntegratedGradientSaliency  = boot(data = dados,
+           statistic = thetaIntegratedGradientSaliency,
+           R = 4000) %>%
+    tidy(conf.level = .95,
+         conf.method = "bca",
+         conf.int = TRUE)
+bootIntegratedGradientSaliency$nome = "IntegratedGradientSaliency"
+
+```
+
+```{r}
+
+thetaBlur <- function(d, i) {
+    methodSum = d %>%
+        slice(i) %>% 
+        group_by(method) %>% 
+        summarise(media = mean(puro_spearman))
+    gradMedia = methodSum %>% filter(method == "Blur") %>% pull(media)
+    gradMedia
+}
+bootBlur = boot(data = dados,
+           statistic = thetaBlur,
+           R = 4000) %>%
+    tidy(conf.level = .95,
+         conf.method = "bca",
+         conf.int = TRUE)
+bootBlur$nome = "Blur"
+```
+
+```{r}
+medias <- rbind(bootBlur, bootIntegratedGradientSaliency, bootGradientSaliency, bootSmoothGradCAM ,bootSmoothGradientSaliency, bootSmoothIntegratedGradientSaliency, bootXRAI)
+
+medias
+```
+
+
+```{r}
+medias <- rbind(bootBlur, bootSmoothIntegratedGradientSaliency, bootIntegratedGradientSaliency, bootSmoothGradientSaliency, bootGradientSaliency, bootSmoothGradCAM, bootXRAI)
+medias %>% 
+  ggplot(aes(
+            ymin = conf.low,
+            y = statistic,
+            ymax = conf.high,
+            x = nome,
+            color = nome
+        )) +
+        geom_linerange(color = "black") +
+        geom_point(size = 2) +
+        scale_y_continuous(limits = c(-.3, .3)) +
+        labs(x = "", y = "IC 95% Média de Correlacão")+
+    coord_flip()+ theme(legend.position="none")
+
+
+```
+```{r}
+ggsave("mediaCorr.pdf", width= 6, height= 4, dpi = 300)
+```
+
+```{r}
+thetaSaliencyGrad <- function(d, i) {
+    methodSum = d %>%
+        slice(i) %>% 
+        group_by(method) %>% 
+        summarise(media = mean(puro_spearman))
+    saliencyMedia = methodSum %>% filter(method == "GradientSaliency") %>% pull(media)
+    gradMedia = methodSum %>% filter(method == "SmoothGradientSaliency") %>% pull(media)
+    saliencyMedia - gradMedia
+}
+bootSaliencyGradIGrad = boot(data = dados,
+           statistic = thetaSaliencyGrad,
+           R = 2000) %>%
+    tidy(conf.level = .95,
+         conf.int = TRUE)
+bootSaliencyGradIGrad$nome = "GradientSaliency - SmoothGradientSaliency"
+
+
+thetaSaliencyGradSGrad <- function(d, i) {
+    methodSum = d %>%
+        slice(i) %>% 
+        group_by(method) %>% 
+        summarise(media = mean(puro_spearman))
+    saliencyMedia = methodSum %>% filter(method == "IntegratedGradientSaliency") %>% pull(media)
+    gradMedia = methodSum %>% filter(method == "SmoothIntegratedGradientSaliency") %>% pull(media)
+    saliencyMedia - gradMedia
+}
+bootSaliencyGradSGrad = boot(data = dados,
+           statistic = thetaSaliencyGradSGrad,
+           R = 2000) %>%
+    tidy(conf.level = .95,
+         conf.int = TRUE)
+bootSaliencyGradSGrad$nome = "GradientSaliency - SmoothIntegratedGradientSaliency"
+
+
+```
+
+```{r}
+
+medias <- rbind(bootSaliencyGradIGrad, bootSaliencyGradSGrad)
+
+
+medias %>% 
+  ggplot(aes(
+            ymin = conf.low,
+            y = statistic,
+            ymax = conf.high,
+            x = nome
+        )) +
+        geom_linerange(color = "black") +
+        geom_point(size = 1, color = "blue") +
+        scale_y_continuous(limits = c(-.3, .3)) +
+        labs(x = "", y = "Diferenca entre Médias de Correlacão")+
+    coord_flip()
+```
+```{r}
+ggsave("diffCorr.pdf", width= 6, height= 2, dpi = 300)
+```
+
+
+
